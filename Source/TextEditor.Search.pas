@@ -224,7 +224,7 @@ var
   function IsSearchItemLowerThanTextPosition: Boolean;
   begin
     Result := (LSearchItem^.EndTextPosition.Line < ATextPosition.Line) or
-      (LSearchItem^.EndTextPosition.Line = ATextPosition.Line) and (LSearchItem^.EndTextPosition.Char < ATextPosition.Char)
+      (LSearchItem^.EndTextPosition.Line = ATextPosition.Line) and (LSearchItem^.EndTextPosition.Char <= ATextPosition.Char)
   end;
 
 begin
@@ -238,10 +238,12 @@ begin
   LSearchItem := PTextEditorSearchItem(FItems[0]);
 
   if IsSearchItemGreaterThanTextPosition then
+  begin
     if soWrapAround in Options then
       Exit(LHigh)
     else
       Exit;
+  end;
 
   LSearchItem := PTextEditorSearchItem(FItems[LHigh]);
 
@@ -314,10 +316,12 @@ begin
   LSearchItem := PTextEditorSearchItem(FItems[LHigh]);
 
   if IsSearchItemLowerThanTextPosition then
+  begin
     if soWrapAround in Options then
       Exit(0)
     else
       Exit;
+  end;
 
   LLow := 1;
 
