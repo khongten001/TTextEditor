@@ -1,4 +1,4 @@
-# TTextEditor [![License](https://img.shields.io/badge/License-MIT-yellowgreen.svg)](https://opensource.org/licenses/MIT) [![File count](https://tokei.rs/b1/github/TextEditorPro/TTextEditor?category=files)](https://github.com/TextEditorPro/TTextEditor/tree/main/Source) [![Lines of code](https://tokei.rs/b1/github/TextEditorPro/TTextEditor?category=code)](https://github.com/TextEditorPro/TTextEditor/tree/main/Source)
+# TTextEditor [![License](https://img.shields.io/badge/License-MIT-yellowgreen.svg)](https://opensource.org/licenses/MIT) 
 
 Legacy version of the TTextEditor control for C++ Builder/Delphi. 
 
