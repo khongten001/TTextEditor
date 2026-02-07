@@ -966,6 +966,7 @@ end;
 
 {$ENDIF}
 
+{$IFDEF VCL_STYLES}
 initialization
 
   TCustomStyleEngine.RegisterStyleHook(TTextEditor, TVclStyleScrollBarsHook);
@@ -975,6 +976,7 @@ finalization
 
   TCustomStyleEngine.UnRegisterStyleHook(TTextEditor, TVclStyleScrollBarsHook);
   TCustomStyleEngine.UnRegisterStyleHook(TDBTextEditor, TVclStyleScrollBarsHook);
+{$ENDIF}
 
 end.
 

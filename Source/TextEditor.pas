@@ -22,11 +22,11 @@ uses
   TextEditor.Scroll, TextEditor.Search, TextEditor.Search.Base, TextEditor.Selection, TextEditor.SkipRegions,
   TextEditor.SpecialChars, TextEditor.SyncEdit, TextEditor.Tabs, TextEditor.Types, TextEditor.Undo,
   TextEditor.Undo.List, TextEditor.UnknownChars, TextEditor.Utils, TextEditor.WordWrap
-{$IFDEF ALPHASKINS}
-  , acSBUtils, sCommonData
-{$ENDIF}
 {$IFDEF TEXT_EDITOR_SPELL_CHECK}
   , TextEditor.SpellCheck
+{$ENDIF}
+{$IFDEF ALPHASKINS}
+  , acSBUtils, sCommonData
 {$ENDIF};
 
 type
@@ -1405,17 +1405,18 @@ implementation
 
 uses
   Winapi.Imm, Winapi.ShellAPI, System.Character, System.RegularExpressions, System.StrUtils, System.Types, Vcl.Clipbrd,
-  Vcl.ImgList, Vcl.Menus, TextEditor.Export.HTML, TextEditor.Highlighter.Rules, TextEditor.Language,
-  TextEditor.LeftMargin.Border, TextEditor.LeftMargin.LineNumbers, TextEditor.Scroll.Hint, TextEditor.Search.Map,
-  TextEditor.Search.Normal, TextEditor.Search.RegularExpressions, TextEditor.Search.WildCard, TextEditor.Undo.Item
-{$IFDEF VCL_STYLES}
-  , TextEditor.StyleHooks
+  Vcl.ImgList, Vcl.Menus, TextEditor.Encoding, TextEditor.Export.HTML, TextEditor.Highlighter.Rules,
+  TextEditor.Language, TextEditor.LeftMargin.Border, TextEditor.LeftMargin.LineNumbers, TextEditor.Scroll.Hint,
+  TextEditor.Search.Map, TextEditor.Search.Normal, TextEditor.Search.RegularExpressions, TextEditor.Search.WildCard,
+  TextEditor.Undo.Item
+{$IFDEF ALPHASKINS}
+  , acGlow, sConst, sMessages, sSkinManager, sStyleSimply, sVCLUtils
 {$ENDIF}
 {$IFDEF BASENCODING}
   , TextEditor.Encoding
 {$ENDIF}
-{$IFDEF ALPHASKINS}
-  , acGlow, sConst, sMessages, sSkinManager, sStyleSimply, sVCLUtils
+{$IFDEF VCL_STYLES}
+  , TextEditor.StyleHooks
 {$ENDIF};
 
 type
@@ -6869,8 +6870,6 @@ var
   LSelectionStartPosition: TTextEditorTextPosition;
   LSelectionEndPosition: TTextEditorTextPosition;
   LPasteMode: TTextEditorSelectionMode;
-  LLength, LCharCount: Integer;
-  LSpaces: string;
 begin
   if FMultiEdit.SelectionAvailable then
   begin
@@ -6888,30 +6887,10 @@ begin
   try
     FUndoList.AddChange(crCaret, LTextPosition, LSelectionStartPosition, SelectionEndPosition, '', smNormal);
 
-    LLength := FLines[LTextPosition.Line].Length;
-
-    if GetSelectionAvailable then
-      AddUndoDelete(LTextPosition, SelectionStartPosition, SelectionEndPosition, GetSelectedText, FSelection.ActiveMode)
-    else
-    begin
-      FSelection.ActiveMode := Selection.Mode;
-
-      if LTextPosition.Char > LLength + 1 then
-      begin
-        LCharCount := LTextPosition.Char - LLength - 1;
-
-        if toTabsToSpaces in FTabs.Options then
-          LSpaces := StringOfChar(TCharacters.Space, LCharCount)
-        else
-        begin
-          LSpaces := StringOfChar(TControlCharacters.Tab, LCharCount div FTabs.Width);
-          LSpaces := LSpaces + StringOfChar(TCharacters.Space, LCharCount mod FTabs.Width);
-        end;
-      end;
-    end;
-
     if GetSelectionAvailable then
     begin
+      AddUndoDelete(LTextPosition, SelectionStartPosition, SelectionEndPosition, GetSelectedText, FSelection.ActiveMode);
+
       FPosition.SelectionStart := LSelectionStartPosition;
       FPosition.SelectionEnd := LSelectionEndPosition;
 
@@ -6920,6 +6899,8 @@ begin
     end
     else
     begin
+      FSelection.ActiveMode := Selection.Mode;
+
       LSelectionStartPosition := LTextPosition;
 
       if FSyncEdit.Visible then
@@ -9312,7 +9293,7 @@ var
 
       for LIndex := 1 to ALine.Length do
       if ALine[LIndex] = AChar then
-        Inc(result)
+        Inc(Result)
       else
         Break;
     end;
@@ -12158,8 +12139,6 @@ begin
 end;
 
 procedure TCustomTextEditor.DragOver(ASource: TObject; X, Y: Integer; AState: TDragState; var AAccept: Boolean);
-var
-  LOldTextPosition: TTextEditorTextPosition;
 begin
   inherited;
 
@@ -12173,7 +12152,6 @@ begin
         TextPosition := PixelsToTextPosition(FMouse.Down.X, FMouse.Down.Y)
       else
       begin
-        LOldTextPosition := TextPosition;
         TextPosition := PixelsToTextPosition(X, Y);
         ComputeScroll(Point(X, Y));
 
@@ -18217,13 +18195,12 @@ begin
 end;
 
 procedure TCustomTextEditor.SetSelectedTextEmpty(const AChangeString: string = '');
-var
-  LSelectionStartPosition: TTextEditorTextPosition;
-  LTextPosition: TTextEditorTextPosition;
 
   procedure SetSelectedText;
   var
     LSelectedText: string;
+    LSelectionStartPosition: TTextEditorTextPosition;
+    LTextPosition: TTextEditorTextPosition;
   begin
     LSelectionStartPosition := SelectionStartPosition;
 
@@ -20166,7 +20143,7 @@ procedure TCustomTextEditor.MoveCaretToEnd;
 var
   LTextPosition: TTextEditorTextPosition;
 begin
-  LTextPosition := GetPosition(FLines[LTextPosition.Line].Length, FLines.Count - 1);
+  LTextPosition := GetPosition(FLines[FLines.Count - 1].Length + 1, FLines.Count - 1);
 
   FPosition.SelectionStart := LTextPosition;
   FPosition.SelectionEnd := LTextPosition;
@@ -23351,10 +23328,18 @@ end;
 procedure TCustomDBTextEditor.LoadBlob;
 var
   LStream: TStream;
+  LEncoding: System.SysUtils.TEncoding;
 begin
   LStream := FDataLink.DataSet.CreateBlobStream(FDataLink.Field, bmRead);
   try
-    LoadFromStream(LStream);
+    LEncoding := nil;
+
+    case FDataLink.Field.DataType of
+      ftWideString, ftWideMemo:
+        LEncoding := TextEditor.Encoding.TEncoding.UTF8WithoutBOM;
+    end;
+
+    LoadFromStream(LStream, LEncoding);
   finally
     LStream.Free;
   end;
