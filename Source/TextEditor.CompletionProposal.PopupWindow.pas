@@ -226,6 +226,7 @@ begin
       if FCurrentString.Length > 0 then
       begin
         CurrentString := Copy(FCurrentString, 1, FCurrentString.Length - 1);
+
         if Assigned(LTextEditor) then
           LTextEditor.CommandProcessor(TKeyCommands.Left, TControlCharacters.Null, nil);
       end
@@ -238,21 +239,20 @@ begin
       end;
     vkRight:
       if Assigned(LTextEditor) then
-      with LTextEditor do
       begin
-        LTextPosition := TextPosition;
+        LTextPosition := LTextEditor.TextPosition;
 
         if LTextPosition.Char <= FLines[LTextPosition.Line].Length then
           LChar := FLines[LTextPosition.Line][LTextPosition.Char]
         else
           LChar := TCharacters.Space;
 
-        if IsWordBreakChar(LChar) then
+        if LTextEditor.IsWordBreakChar(LChar) then
           Hide
         else
           CurrentString := FCurrentString + LChar;
 
-        CommandProcessor(TKeyCommands.Right, TControlCharacters.Null, nil);
+        LTextEditor.CommandProcessor(TKeyCommands.Right, TControlCharacters.Null, nil);
       end;
     vkPrior:
       MoveSelectedLine(-FCompletionProposal.VisibleLines);

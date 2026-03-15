@@ -8835,41 +8835,50 @@ var
                   end;
                 end;
 
-                if LRegionItem.SkipIfFoundAfterOpenTokenArrayCount > 0 then
-                while (LPText^ <> TControlCharacters.Null) and not LSkipIfFoundAfterOpenToken do
-                begin
-                  if not LPText^.IsWhiteSpace then
-                  for LArrayIndex := 0 to LRegionItem.SkipIfFoundAfterOpenTokenArrayCount - 1 do
-                  begin
-                    LPKeyWord := PChar(LRegionItem.SkipIfFoundAfterOpenTokenArray[LArrayIndex]);
-                    LPBookmarkText2 := LPText;
-
-                    if CaseUpper(LPText^) = LPKeyWord^ then { If first character match }
-                    begin
-                      while (LPText^ <> TControlCharacters.Null) and (LPKeyWord^ <> TControlCharacters.Null) and
-                        (CaseUpper(LPText^) = LPKeyWord^) do
-                      begin
-                        Inc(LPText);
-                        Inc(LPKeyWord);
-                      end;
-
-                      if LPKeyWord^ = TControlCharacters.Null then
-                      begin
-                        LSkipIfFoundAfterOpenToken := True;
-                        Break; { for }
-                      end
-                      else
-                        LPText := LPBookmarkText2; { Region not found, return pointer back }
-                    end;
-                  end;
-
-                  Inc(LPText);
-                end;
-
                 if LSkipIfFoundAfterOpenToken then
                 begin
                   LPText := LPBookmarkText; { Skip found, return pointer back }
                   Continue;
+                end;
+
+                if LRegionItem.SkipIfFoundAfterOpenTokenArrayCount > 0 then
+                begin
+                  LPBookmarkText := LPText;
+
+                  while (LPText^ <> TControlCharacters.Null) and not LSkipIfFoundAfterOpenToken do
+                  begin
+                    if not LPText^.IsWhiteSpace then
+                    for LArrayIndex := 0 to LRegionItem.SkipIfFoundAfterOpenTokenArrayCount - 1 do
+                    begin
+                      LPKeyWord := PChar(LRegionItem.SkipIfFoundAfterOpenTokenArray[LArrayIndex]);
+                      LPBookmarkText2 := LPText;
+
+                      if CaseUpper(LPText^) = LPKeyWord^ then { If first character match }
+                      begin
+                        while (LPText^ <> TControlCharacters.Null) and (LPKeyWord^ <> TControlCharacters.Null) and
+                          (CaseUpper(LPText^) = LPKeyWord^) do
+                        begin
+                          Inc(LPText);
+                          Inc(LPKeyWord);
+                        end;
+
+                        if LPKeyWord^ = TControlCharacters.Null then
+                        begin
+                          LSkipIfFoundAfterOpenToken := True;
+                          Break; { for }
+                        end
+                        else
+                          LPText := LPBookmarkText2; { Region not found, return pointer back }
+                      end;
+                    end;
+
+                    Inc(LPText);
+                  end;
+
+                  if LSkipIfFoundAfterOpenToken then
+	                  Continue
+	                else
+	                  LPText := LPBookmarkText;
                 end;
 
                 { Visual Basic has one liner if statements, skip if found. }
@@ -9204,10 +9213,6 @@ var
             end;
 
             if LPText^ <> TControlCharacters.Null then
-              Inc(LPText);
-
-            { Skip rest of the word }
-            while (LPText^ <> TControlCharacters.Null) and (LPText^ in TCharacterSets.CharactersAndNumbers) do
               Inc(LPText);
 
             LBeginningOfLine := False; { Not in the beginning of the line anymore }
@@ -11448,6 +11453,9 @@ begin
     LBlockEndPosition := GetPosition(LBlockEndPosition.Char + LTab.Length, LBlockEndPosition.Line);
     SetTextPositionAndSelection(LBlockEndPosition, LBlockBeginPosition, LBlockEndPosition);
     FSelection.ActiveMode := LOldSelectionMode;
+
+    if FWordWrap.Active then
+      CreateLineNumbersCache(True);
   end;
 end;
 
@@ -11493,6 +11501,7 @@ begin
   LOldSelectionMode := FSelection.ActiveMode;
   LLength := 0;
   LLastIndent := 0;
+
   if GetSelectionAvailable then
   begin
     LBlockBeginPosition := SelectionStartPosition;
@@ -11585,6 +11594,9 @@ begin
 
     FSelection.ActiveMode := LOldSelectionMode;
   end;
+
+  if FWordWrap.Active then
+    CreateLineNumbersCache(True);
 end;
 
 procedure TCustomTextEditor.DoChange;
@@ -20118,7 +20130,7 @@ procedure TCustomTextEditor.BeginUpdate;
 begin
   IncPaintLock;
 
-  if not FLines.Updating then
+  if not FLines.Updating and not FUndoList.InsideUndoBlock then
   begin
     CreateCollapsedBackup;
     ClearCodeFolding;
@@ -21997,6 +22009,9 @@ begin
 
     FLines.TrailingLineBreak := eoTrailingLineBreak in FOptions;
     FLines.LoadFromStream(AStream, AEncoding);
+
+    if FLines.LoadingCancelled then
+      Exit;
 
     if Assigned(FEvents.OnAfterLoadFromStream) then
       FEvents.OnAfterLoadFromStream(Self, AStream, AEncoding);
